@@ -10,124 +10,153 @@ const Cat = {
   frame: 0,
   frameTimer: 0,
   frameDelay: 12,
-  scale: 3,
+  scale: 18,        // 16*18 = 288px wide, 16*18 = 288px tall (sprite is ~16 rows)
   _timer: null,
   particles: [],
 
-  // Color palette: key => CSS color (null = transparent)
+  // Color palette
   C: {
     '.': null,
-    'B': '#1a1a2e',  // black outline
-    'O': '#cc7733',  // dark orange (ear/shadow)
-    'L': '#e89040',  // main orange body
-    'F': '#f5b060',  // light orange highlight
+    'B': '#111111',  // black outline
+    'O': '#cc6820',  // dark orange (ear shadow, accent)
+    'L': '#e8904a',  // main orange body
+    'F': '#f5b460',  // light orange highlight
     'W': '#f0f0f0',  // white (eyes)
-    'P': '#ff9999',  // pink (nose)
-    'G': '#888888',  // gray (tail)
+    'P': '#ff8888',  // pink (nose, inner ears)
+    'G': '#aaaaaa',  // gray (tail tip)
+    'N': '#222222',  // dark (pupil)
   },
 
-  // 16-wide x 13-tall sprites, cat facing RIGHT
+  // ─────────────────────────────────────────────────────────────
+  //  Sprites: 16 columns × 16 rows, cat facing RIGHT
+  //
+  //  Layout (per row):
+  //   0-1  : pointy ears
+  //   2-7  : round head (eyes, nose, chin)
+  //   8-9  : neck → body
+  //  10-12 : body + tail on left side
+  //  13-15 : legs / feet
+  // ─────────────────────────────────────────────────────────────
   SPRITES: {
+
+    // ── WALK ──────────────────────────────────────────────────
     walk: [
-      // Frame 0: left leg forward
-      [
-        '........BB.BB...',
-        '.......BOLLLLB..',
-        '......BOLLLLLB..',
-        '......BLWBBLWB..',
-        '......BLLBBLL...',
-        '......BLPPPLBB..',
-        '.......BBBBB....',
-        '......BLLLLB....',
-        '....BBLLLLLLB...',
-        '...BGLLLLLLLLB..',
-        '...BGB..........',
-        '...BB..BB.......',
-        '....B...B.......',
+      [   // frame 0: left leg forward
+        // 0123456789012345
+        '....BB....BB....',  //  0  two pointy ears (cols 4-5, 10-11)
+        '...BPPB..BPPB...',  //  1  ear inner pink
+        '...BLLBBBBLLB...',  //  2  head top — ears merge into skull
+        '..BLLLLLLLLLLB..',  //  3  head wide row
+        '..BLLWWLLLWWLB..',  //  4  eyes: WW = white (left cols 5-6, right cols 10-11)
+        '..BLLWNLLLWNLB..',  //  5  pupils: N = dark dot (right side of each eye)
+        '..BLLLLLPLLLLLB.',  //  6  nose: P = pink centre (col 9)
+        '..BLLLLBBBLLLLB.',  //  7  mouth: BBB = tiny frown line
+        '...BBBBBBBBBB...',  //  8  chin / bottom of head
+        '...BLLLLLLLLB...',  //  9  neck
+        'BGBLLLLLLLLLLLB.',  // 10  body (BGB = tail left, body to right)
+        'BGBLLLLLLLLLLLB.',  // 11  body
+        '.BGBB...........',  // 12  tail curves left-up
+        '....BB.....BB...',  // 13  legs: front pair + back pair
+        '....B......B....',  // 14  feet
+        '................',  // 15  ground clearance
       ],
-      // Frame 1: right leg forward
-      [
-        '........BB.BB...',
-        '.......BOLLLLB..',
-        '......BOLLLLLB..',
-        '......BLWBBLWB..',
-        '......BLLBBLL...',
-        '......BLPPPLBB..',
-        '.......BBBBB....',
-        '......BLLLLB....',
-        '....BBLLLLLLB...',
-        '...BGLLLLLLLLB..',
-        '...BGB..........',
-        '....BB..BB......',
-        '.....B...B......',
+      [   // frame 1: right leg forward (legs shifted)
+        '....BB....BB....',  //  0
+        '...BPPB..BPPB...',  //  1
+        '...BLLBBBBLLB...',  //  2
+        '..BLLLLLLLLLLB..',  //  3
+        '..BLLWWLLLWWLB..',  //  4
+        '..BLLWNLLLWNLB..',  //  5
+        '..BLLLLLPLLLLLB.',  //  6
+        '..BLLLLBBBLLLLB.',  //  7
+        '...BBBBBBBBBB...',  //  8
+        '...BLLLLLLLLB...',  //  9
+        'BGBLLLLLLLLLLLB.',  // 10
+        'BGBLLLLLLLLLLLB.',  // 11
+        '.BGBB...........',  // 12
+        '..BB.......BB...',  // 13  legs shifted
+        '..B.........B...',  // 14
+        '................',  // 15
       ],
     ],
+
+    // ── PURR (sitting, happy face) ────────────────────────────
     purr: [
-      // Frame 0: sitting, happy mouth, tail left-low
-      [
-        '........BB.BB...',
-        '.......BOLLLLB..',
-        '......BOLLLLLB..',
-        '......BLWBBLWB..',
-        '......BLLBBLL...',
-        '......BLWWWLBB..',
-        '.......BBBBB....',
-        '......BLLLLB....',
-        '....BBLLLLLLB...',
-        '..BGBLLLLLLLLB..',
-        '..BGB...........',
-        '...BB.BB........',
-        '....BBBBB.......',
+      [   // frame 0: tail up
+        '....BB....BB....',  //  0
+        '...BPPB..BPPB...',  //  1
+        '...BLLBBBBLLB...',  //  2
+        '..BLLLLLLLLLLB..',  //  3
+        '..BLLWWLLLWWLB..',  //  4
+        '..BLLWNLLLWNLB..',  //  5
+        '..BLLLLWPLLLLLB.',  //  6  W = happy-mouth corner, P = nose
+        '..BLLLLWWWLLLLB.',  //  7  WWW = wide smile curve
+        '...BBBBBBBBBB...',  //  8
+        '...BLLLLLLLLB...',  //  9
+        'BGBLLLLLLLLLLLB.',  // 10
+        'BGBLLLLLLLLLLLB.',  // 11
+        'BGB.............',  // 12  tail up (straight left)
+        '....BBBB.BBBB...',  // 13  sitting paws
+        '....BLLL.LLLB...',  // 14  paw interior
+        '................',  // 15
       ],
-      // Frame 1: tail slightly higher
-      [
-        '........BB.BB...',
-        '.......BOLLLLB..',
-        '......BOLLLLLB..',
-        '......BLWBBLWB..',
-        '......BLLBBLL...',
-        '......BLWWWLBB..',
-        '.......BBBBB....',
-        '......BLLLLB....',
-        '....BBLLLLLLB...',
-        '...BGBLLLLLLLLB.',
-        '...BGB..........',
-        '...BB.BB........',
-        '....BBBBB.......',
+      [   // frame 1: tail slightly different
+        '....BB....BB....',  //  0
+        '...BPPB..BPPB...',  //  1
+        '...BLLBBBBLLB...',  //  2
+        '..BLLLLLLLLLLB..',  //  3
+        '..BLLWWLLLWWLB..',  //  4
+        '..BLLWNLLLWNLB..',  //  5
+        '..BLLLLWPLLLLLB.',  //  6
+        '..BLLLLWWWLLLLB.',  //  7
+        '...BBBBBBBBBB...',  //  8
+        '...BLLLLLLLLB...',  //  9
+        'BGBLLLLLLLLLLLB.',  // 10
+        'BGBLLLLLLLLLLLB.',  // 11
+        '.BGB............',  // 12  tail shifted
+        '....BBBB.BBBB...',  // 13
+        '....BLLL.LLLB...',  // 14
+        '................',  // 15
       ],
     ],
+
+    // ── ANGRY (arched back, narrowed eyes, frown) ─────────────
     angry: [
-      // Frame 0: arched, angry slanted eyes, 3 legs
-      [
-        '......BB.BB.....',
-        '.....BOLLLLB....',
-        '....BOLLLLLB....',
-        '....BBBBLBBB....',  // slanted brow lines
-        '....BLLBBLL.....',
-        '....BLPPPLBB....',
-        '.....BBBBBB.....',
-        '....BLLLLBB.....',
-        '..BBLLLLLLBB....',
-        '.BGLLLLLLLLLLB..',
-        '.BGB............',
-        '.BB.BB.BB.......',
-        '..B..B..B.......',
+      [   // frame 0
+        '..BB.......BB...',  //  0  ears wide apart (alert / scared-angry)
+        '.BPPB.....BPPB..',  //  1  ear inner
+        '..BBLLLLLLLBB...',  //  2  puffed head top (BB = fur spikes on edges)
+        '..BLLLLLLLLLLB..',  //  3
+        '..BBBWLLLWBBB...',  //  4  eyes: BBB = heavy furrowed brows, W = narrow slits
+        '..BLLWNLLLWNLB..',  //  5  pupils same
+        '..BLLLLPBBBLLB..',  //  6  nose + angry-mouth BBB = straight frown
+        '..BLLLLBBBLLLLB.',  //  7  deeper frown
+        '...BBBBBBBBBB...',  //  8
+        '..BBLLLLLLLLBB..',  //  9  neck puffed
+        'BGBBLLLLLLLLBBB.',  // 10  body arched (extra B on both sides)
+        'BGBBLLLLLLLBBBB.',  // 11
+        'BGBB............',  // 12  tail stiff (straight left)
+        '.BB.BB.BB.......',  // 13  three-legged alert stance
+        '..B..B..B.......',  // 14  feet spread
+        '................',  // 15
       ],
-      // Frame 1: legs slightly different
-      [
-        '......BB.BB.....',
-        '.....BOLLLLB....',
-        '....BOLLLLLB....',
-        '....BBBBLBBB....',
-        '....BLLBBLL.....',
-        '....BLPPPLBB....',
-        '.....BBBBBB.....',
-        '....BLLLLBB.....',
-        '..BBLLLLLLBB....',
-        '.BGLLLLLLLLLLB..',
-        '.BGB............',
-        '..BB.BB.BB......',
-        '...B..B..B......',
+      [   // frame 1: slight leg shift
+        '..BB.......BB...',  //  0
+        '.BPPB.....BPPB..',  //  1
+        '..BBLLLLLLLBB...',  //  2
+        '..BLLLLLLLLLLB..',  //  3
+        '..BBBWLLLWBBB...',  //  4
+        '..BLLWNLLLWNLB..',  //  5
+        '..BLLLLPBBBLLB..',  //  6
+        '..BLLLLBBBLLLLB.',  //  7
+        '...BBBBBBBBBB...',  //  8
+        '..BBLLLLLLLLBB..',  //  9
+        'BGBBLLLLLLLLBBB.',  // 10
+        'BGBBLLLLLLLBBBB.',  // 11
+        'BGBB............',  // 12
+        '..BB.BB.BB......',  // 13  slightly shifted
+        '...B..B..B......',  // 14
+        '................',  // 15
       ],
     ],
   },
@@ -140,7 +169,7 @@ const Cat = {
       bottom: '0',
       left: '0',
       width: '100%',
-      height: '60px',
+      height: '310px',
       pointerEvents: 'none',
       zIndex: '9999',
       imageRendering: 'pixelated',
@@ -153,8 +182,8 @@ const Cat = {
 
   resize() {
     this.canvas.width = window.innerWidth;
-    this.canvas.height = 60;
-    if (this.x > this.canvas.width - 60) this.x = this.canvas.width - 80;
+    this.canvas.height = 310;
+    if (this.x > this.canvas.width - 80) this.x = this.canvas.width - 100;
   },
 
   loop() {
@@ -164,15 +193,13 @@ const Cat = {
   },
 
   update() {
-    // Walking movement
     if (this.state === 'walk') {
       this.x += this.vx;
-      if (this.x > this.canvas.width - 55) this.vx = -Math.abs(this.vx);
+      if (this.x > this.canvas.width - 70) this.vx = -Math.abs(this.vx);
       if (this.x < 5) this.vx = Math.abs(this.vx);
       this.facing = this.vx >= 0 ? 1 : -1;
     }
 
-    // Animate frames
     this.frameTimer++;
     if (this.frameTimer >= this.frameDelay) {
       this.frameTimer = 0;
@@ -187,28 +214,28 @@ const Cat = {
       p.life--;
     }
 
-    // Spawn hearts for purr
+    // Hearts for purr
     if (this.state === 'purr' && Math.random() < 0.12) {
-      const headX = this.facing === 1 ? this.x + 38 : this.x + 10;
+      const headX = this.facing === 1 ? this.x + 60 : this.x + 5;
       this.particles.push({
-        x: headX + (Math.random() - 0.5) * 10,
-        y: this.canvas.height - 36,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: -1.4 - Math.random() * 0.6,
-        life: 45,
+        x: headX + (Math.random() - 0.5) * 20,
+        y: this.canvas.height - 200,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: -1.5 - Math.random(),
+        life: 50,
         type: 'heart',
       });
     }
 
-    // Spawn sparks for angry
-    if (this.state === 'angry' && Math.random() < 0.18) {
-      const headX = this.facing === 1 ? this.x + 38 : this.x + 10;
+    // Sparks for angry
+    if (this.state === 'angry' && Math.random() < 0.2) {
+      const headX = this.facing === 1 ? this.x + 60 : this.x + 5;
       this.particles.push({
-        x: headX + (Math.random() - 0.5) * 12,
-        y: this.canvas.height - 40,
-        vx: (Math.random() - 0.5) * 2.5,
-        vy: -2 - Math.random(),
-        life: 22,
+        x: headX + (Math.random() - 0.5) * 20,
+        y: this.canvas.height - 220,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -2 - Math.random() * 1.5,
+        life: 25,
         type: 'spark',
       });
     }
@@ -227,7 +254,6 @@ const Cat = {
 
     ctx.save();
     if (this.facing === -1) {
-      // Flip horizontally to face left
       ctx.translate(this.x + spriteW * s, drawY);
       ctx.scale(-1, 1);
     } else {
@@ -247,19 +273,19 @@ const Cat = {
 
     ctx.restore();
 
-    // Draw particles
+    // Particles
     for (const p of this.particles) {
       if (p.type === 'heart') {
-        ctx.globalAlpha = p.life / 45;
-        ctx.font = '13px serif';
-        ctx.fillStyle = '#ff66aa';
+        ctx.globalAlpha = p.life / 50;
+        ctx.font = '18px serif';
+        ctx.fillStyle = '#ff66bb';
         ctx.fillText('♥', p.x, p.y);
       } else {
-        ctx.globalAlpha = p.life / 22;
+        ctx.globalAlpha = p.life / 25;
         ctx.fillStyle = '#ffcc00';
-        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.fillRect(p.x, p.y, 4, 4);
         ctx.fillStyle = '#ff4400';
-        ctx.fillRect(p.x + 1, p.y + 1, 2, 2);
+        ctx.fillRect(p.x + 1, p.y + 1, 3, 3);
       }
     }
     ctx.globalAlpha = 1;
@@ -274,30 +300,27 @@ const Cat = {
 
   drawBubble(ctx, text, borderColor) {
     const spriteW = 16 * this.scale;
-    const pad = 8;
-
-    ctx.font = 'bold 12px Arial, sans-serif';
+    const pad = 10;
+    ctx.font = 'bold 14px Arial, sans-serif';
     const tw = ctx.measureText(text).width;
     const bw = tw + pad * 2;
-    const bh = 24;
+    const bh = 30;
 
-    // Position bubble to the right or left of cat depending on facing
-    let bx = this.facing === 1 ? this.x + spriteW + 5 : this.x - bw - 5;
-    // Keep on screen
+    let bx = this.facing === 1 ? this.x + spriteW + 8 : this.x - bw - 8;
     bx = Math.max(4, Math.min(bx, this.canvas.width - bw - 4));
-    const by = 4;
+    const by = 20;
 
-    ctx.fillStyle = 'rgba(10, 10, 22, 0.88)';
+    ctx.fillStyle = 'rgba(8, 8, 20, 0.88)';
     ctx.beginPath();
-    this._roundRect(ctx, bx, by, bw, bh, 6);
+    this._roundRect(ctx, bx, by, bw, bh, 7);
     ctx.fill();
 
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(text, bx + pad, by + bh / 2 + 4);
+    ctx.fillText(text, bx + pad, by + bh / 2 + 5);
   },
 
   _roundRect(ctx, x, y, w, h, r) {
@@ -313,7 +336,6 @@ const Cat = {
     ctx.closePath();
   },
 
-  // Public API
   walk() {
     this.state = 'walk';
     clearTimeout(this._timer);
