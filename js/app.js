@@ -15,6 +15,7 @@ const App = {
     this.container = document.getElementById('quiz');
     Particles.init('particles-canvas');
     Confetti.init('confetti-canvas');
+    Cat.init();
 
     // Check if player name exists
     const name = Storage.getPlayerName();
@@ -240,6 +241,7 @@ const App = {
       this.streak++;
       if (this.streak > this.maxStreak) this.maxStreak = this.streak;
 
+      Cat.purr();
       feedback.textContent = this.getCorrectMessage();
       feedback.className = 'feedback correct';
 
@@ -261,6 +263,7 @@ const App = {
       this.streak = 0;
       this.container.classList.remove('streak-glow');
 
+      Cat.angry();
       btnEl.classList.add('wrong');
       feedback.textContent = 'Неправильно. Правильна відповідь виділена зеленим.';
       feedback.className = 'feedback wrong';
