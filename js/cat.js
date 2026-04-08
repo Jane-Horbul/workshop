@@ -10,7 +10,7 @@ const Cat = {
   frame: 0,
   frameTimer: 0,
   frameDelay: 12,
-  scale: 18,        // 16*18 = 288px wide, 16*18 = 288px tall (sprite is ~16 rows)
+  scale: 9,        // 16*18 = 288px wide, 16*18 = 288px tall (sprite is ~16 rows)
   _timer: null,
   particles: [],
 
@@ -169,7 +169,7 @@ const Cat = {
       bottom: '0',
       left: '0',
       width: '100%',
-      height: '310px',
+      height: '155px',
       pointerEvents: 'none',
       zIndex: '9999',
       imageRendering: 'pixelated',
@@ -182,7 +182,7 @@ const Cat = {
 
   resize() {
     this.canvas.width = window.innerWidth;
-    this.canvas.height = 310;
+    this.canvas.height = 155;
     if (this.x > this.canvas.width - 80) this.x = this.canvas.width - 100;
   },
 
